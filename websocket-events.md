@@ -60,7 +60,10 @@ session_expired and internal_error.
 
 WebSocket delivery is best-effort to online sockets. PostgreSQL is the source
 of truth: after reconnecting, clients must fetch message history over the REST
-endpoint using the last received sequence as the before cursor. The initial
+endpoint using the last received sequence as the `after` cursor. The `after`
+query returns newer messages in ascending sequence order and exposes `next_after`
+for pages larger than the requested limit. The `before` and `after` cursors are
+mutually exclusive. The initial
 server hub is process-local and intended for a single home-server instance;
 multi-instance fan-out requires a shared pub/sub layer (for example PostgreSQL
 LISTEN/NOTIFY or Redis) before horizontal scaling.
