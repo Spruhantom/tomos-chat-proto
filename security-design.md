@@ -1,16 +1,36 @@
-# TomChat Security Design — Initial Decisions
+# TomChat Security Design
 
-## Requirements
-- Passwords: Argon2id, with parameters selected for supported server hardware.
-- Transport: TLS for all remote connections.
+## Implemented in server stage 2
+
+- Passwords are hashed with Argon2id (3 iterations, 64 MiB memory, parallelism 2, 32-byte output).
+- Login issues a cryptographically random 256-bit bearer token.
+- Only the SHA-256 hash of the bearer token is stored in PostgreSQL.
+- Sessions expire after 24 hours and can be revoked by logout.
+- Account registration can be disabled by the server operator.
+- First administrator bootstrap is allowed only while the user table is empty.
+- Remote desktop connections require HTTPS; HTTP is permitted only for local development.
+
+## Requirements before public deployment
+
+- Add login and registration rate limiting and abuse controls.
+- Add account recovery and administrator recovery procedures.
+- Add audit logging and session/device management.
+- Configure TLS, backups, monitoring, and secret rotation.
+- Complete threat modelling and an independent security review.
+
+## End-to-end encryption plan
+
 - Private messaging: adopt a maintained Signal Protocol implementation; do not design a replacement.
 - Group messaging: evaluate MLS (RFC 9420) through a maintained implementation such as OpenMLS.
-- Voice/video: WebRTC transport security alone is not sufficient to claim end-to-end encryption when an SFU is used. Define and review an additional media E2EE design before making that claim.
 - Device identity and recovery must be designed before multi-device E2EE is released.
+- The server must route and store ciphertext without receiving plaintext message keys.
 
-## Threat-model review required
-Document server compromise, malicious administrators, compromised endpoints,
-lost devices, account recovery, group membership changes, key verification,
-backup handling, and metadata exposure.
+## Voice and video
 
-No E2EE feature should be described as production-ready until independently reviewed.
+WebRTC transport encryption alone is not sufficient to claim end-to-end encryption when an SFU is used. Define and review an additional media E2EE design (for example, an SFrame-based approach) before making that claim.
+
+## Threat model to review
+
+Server compromise, malicious administrators, compromised endpoints, lost devices,
+account recovery, group membership changes, key verification, backup handling,
+and metadata exposure.
