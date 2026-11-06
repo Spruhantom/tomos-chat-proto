@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: TomChat API
-  version: 0.2.0
-  description: Authentication foundation for the TomChat platform.
+  version: 0.3.0
+  description: Authentication, conversations, encrypted message storage and real-time delivery.
 servers:
   - url: https://chat.example.invalid
 paths:
@@ -66,10 +66,108 @@ paths:
     post:
       security:
         - bearerAuth: []
-      summary: Revoke current session
+      summary: Revoke current session and close its live socket
       responses:
         '204': { description: Session revoked }
         '401': { description: Authentication required }
+  /api/v1/conversations:
+    get:
+      security:
+        - bearerAuth: []
+      summary: List conversations for the authenticated user
+      responses:
+        '200':
+          description: Conversations ordered by latest activity
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversations]
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+        '401': { description: Authentication required }
+    post:
+      security:
+        - bearerAuth: []
+      summary: Create a direct or group conversation
+      description: The authenticated user is added automatically. Direct conversations have exactly two members; groups have 2 to 100 members.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversation'
+      responses:
+        '201':
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400': { description: Invalid kind, title, member ID or membership count }
+        '401': { description: Authentication required }
+  /api/v1/conversations/{conversationID}/messages:
+    parameters:
+      - name: conversationID
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      security:
+        - bearerAuth: []
+      summary: Fetch a page of encrypted conversation messages
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: before
+          in: query
+          description: Return messages with a server sequence lower than this cursor.
+          schema: { type: integer, format: int64, minimum: 1 }
+      responses:
+        '200':
+          description: Message history, oldest to newest within the page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePage'
+        '401': { description: Authentication required }
+        '403': { description: Not a conversation member }
+    post:
+      security:
+        - bearerAuth: []
+      summary: Persist an encrypted message and publish it to online members
+      description: The server stores ciphertext and nonce as opaque bytes. It does not decrypt or validate message plaintext. Client message IDs make retries idempotent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EncryptedMessageInput'
+      responses:
+        '201':
+          description: Message stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400': { description: Invalid encrypted message or conversation ID mismatch }
+        '401': { description: Authentication required }
+        '403': { description: Not a conversation member }
+        '409': { description: Client message ID reused for a different conversation }
+  /api/v1/ws:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Authenticated WebSocket event stream
+      description: Upgrade this HTTP endpoint to WebSocket using the bearer Authorization header. The socket is bound to the exact session and is closed when that session logs out or expires. See websocket-events.md for message.send, message.deliver and message.ack contracts.
+      responses:
+        '101': { description: WebSocket protocol switched }
+        '401': { description: Authentication required }
+        '403': { description: Origin rejected }
 components:
   securitySchemes:
     bearerAuth:
@@ -104,3 +202,54 @@ components:
         user: { $ref: '#/components/schemas/User' }
         token: { type: string }
         expires_at: { type: string, format: date-time }
+    CreateConversation:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [direct, group] }
+        title: { type: string, maxLength: 120 }
+        member_ids:
+          type: array
+          uniqueItems: true
+          maxItems: 99
+          items: { type: string, format: uuid }
+    Conversation:
+      type: object
+      required: [id, kind, created_at, member_count]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [direct, group] }
+        title: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+        last_message_at: { type: [string, 'null'], format: date-time }
+        member_count: { type: integer, minimum: 1 }
+    EncryptedMessageInput:
+      type: object
+      additionalProperties: false
+      required: [conversation_id, client_message_id, ciphertext, nonce, encryption_version]
+      properties:
+        conversation_id: { type: string, format: uuid }
+        client_message_id: { type: string, format: uuid }
+        ciphertext: { type: string, contentEncoding: base64, minLength: 4, maxLength: 65536 }
+        nonce: { type: string, contentEncoding: base64, minLength: 12, maxLength: 44 }
+        encryption_version: { type: integer, const: 1 }
+        key_id: { type: string, maxLength: 128 }
+    Message:
+      allOf:
+        - $ref: '#/components/schemas/EncryptedMessageInput'
+        - type: object
+          required: [id, sequence, sender_id, created_at]
+          properties:
+            id: { type: string, format: uuid }
+            sequence: { type: integer, format: int64 }
+            sender_id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+    MessagePage:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items: { $ref: '#/components/schemas/Message' }
+        next_before: { type: integer, format: int64 }
