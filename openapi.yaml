@@ -140,6 +140,7 @@ paths:
                 $ref: '#/components/schemas/MessagePage'
         '401': { description: Authentication required }
         '403': { description: Not a conversation member }
+        '400': { description: Invalid cursor or conflicting before/after parameters }
     post:
       security:
         - bearerAuth: []
