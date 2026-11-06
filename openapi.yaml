@@ -125,7 +125,11 @@ paths:
           schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
         - name: before
           in: query
-          description: Return messages with a server sequence lower than this cursor.
+          description: Return messages with a server sequence lower than this cursor. Cannot be combined with after.
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: after
+          in: query
+          description: Return messages with a server sequence higher than this cursor, oldest first. Cannot be combined with before.
           schema: { type: integer, format: int64, minimum: 1 }
       responses:
         '200':
@@ -136,6 +140,7 @@ paths:
                 $ref: '#/components/schemas/MessagePage'
         '401': { description: Authentication required }
         '403': { description: Not a conversation member }
+        '400': { description: Invalid cursor or conflicting before/after parameters }
     post:
       security:
         - bearerAuth: []
@@ -262,3 +267,4 @@ components:
           type: array
           items: { $ref: '#/components/schemas/Message' }
         next_before: { type: integer, format: int64 }
+        next_after: { type: integer, format: int64 }
