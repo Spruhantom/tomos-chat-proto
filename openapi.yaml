@@ -224,6 +224,9 @@ components:
         created_at: { type: string, format: date-time }
         last_message_at: { type: [string, 'null'], format: date-time }
         member_count: { type: integer, minimum: 1 }
+        member_ids:
+          type: array
+          items: { type: string, format: uuid }
     EncryptedMessageInput:
       type: object
       additionalProperties: false
@@ -231,7 +234,7 @@ components:
       properties:
         conversation_id: { type: string, format: uuid }
         client_message_id: { type: string, format: uuid }
-        ciphertext: { type: string, contentEncoding: base64, minLength: 4, maxLength: 65536 }
+        ciphertext: { type: string, contentEncoding: base64, minLength: 4, maxLength: 54616 }
         nonce: { type: string, contentEncoding: base64, minLength: 12, maxLength: 44 }
         encryption_version: { type: integer, const: 1 }
         key_id: { type: string, maxLength: 128 }
