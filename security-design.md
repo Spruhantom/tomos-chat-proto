@@ -7,12 +7,13 @@
 - Only the SHA-256 hash of the bearer token is stored in PostgreSQL.
 - Sessions expire after 24 hours and can be revoked by logout.
 - Account registration can be disabled by the server operator.
+- Login has a basic per-process limit of 10 attempts per source IP per minute; this is not a substitute for distributed edge rate limiting.
 - First administrator bootstrap is allowed only while the user table is empty.
 - Remote desktop connections require HTTPS; HTTP is permitted only for local development.
 
 ## Requirements before public deployment
 
-- Add login and registration rate limiting and abuse controls.
+- Extend rate limiting to registration and authenticated abuse controls; deploy distributed edge rate limiting for multi-instance/proxy deployments.
 - Add account recovery and administrator recovery procedures.
 - Add audit logging and session/device management.
 - Configure TLS, backups, monitoring, and secret rotation.
