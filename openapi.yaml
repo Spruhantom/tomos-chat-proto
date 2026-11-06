@@ -148,6 +148,12 @@ paths:
             schema:
               $ref: '#/components/schemas/EncryptedMessageInput'
       responses:
+        '200':
+          description: Idempotent retry of a message already stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
         '201':
           description: Message stored
           content:
