@@ -1,0 +1,42 @@
+openapi: 3.1.0
+info:
+  title: TomChat API
+  version: 0.1.0
+  description: Initial API contract for the TomChat platform.
+servers:
+  - url: https://chat.example.invalid
+paths:
+  /healthz:
+    get:
+      summary: Check server health
+      responses:
+        '200':
+          description: Server is healthy
+  /api/v1/version:
+    get:
+      summary: Get server version
+      responses:
+        '200':
+          description: Version information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  version:
+                    type: string
+                required: [name, version]
+  /api/v1/auth/register:
+    post:
+      summary: Register a user (planned)
+      responses:
+        '501':
+          description: Not implemented yet
+  /api/v1/auth/login:
+    post:
+      summary: Authenticate a user (planned)
+      responses:
+        '501':
+          description: Not implemented yet
