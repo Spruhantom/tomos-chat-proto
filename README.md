@@ -2,11 +2,9 @@
 
 Shared API and realtime event contract for TomChat clients and servers.
 
-## Version 0.2.0
+## Version 0.3.0
 
-The OpenAPI specification defines registration policy, account registration,
-login, current-user lookup, and logout. Authentication uses short-lived bearer
-tokens. Passwords are transmitted only over TLS in remote deployments.
+The OpenAPI specification defines registration, bearer authentication, current-user lookup, logout, direct/group conversations, paginated encrypted-message history, message submission and the authenticated WebSocket endpoint. Passwords and message ciphertext must be transported over TLS in remote deployments.
 
 ## Security rules
 
@@ -16,5 +14,4 @@ tokens. Passwords are transmitted only over TLS in remote deployments.
 - Never invent cryptographic primitives.
 - Breaking changes require a documented protocol version transition.
 
-Messaging, device registration, encrypted payload schemas, group membership,
-and call signalling remain future work.
+The server currently persists opaque encrypted payloads and relays live message events. Client-side cryptography, device registration and key distribution, member management, shared multi-instance pub/sub, and call signalling remain future work.
