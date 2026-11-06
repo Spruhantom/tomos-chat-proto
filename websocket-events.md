@@ -34,7 +34,7 @@ The payload contains:
 The server verifies conversation membership, payload size and encoding, then
 stores the opaque ciphertext and nonce. It does not decrypt message contents.
 The pair (sender_id, client_message_id) is unique, making retries idempotent.
-A client must reuse the same client message ID when retrying a send.
+A client must reuse the same client message ID when retrying a send. Duplicate submissions return the original message and acknowledgement but are not broadcast a second time.
 
 ## Server event: message.ack
 
