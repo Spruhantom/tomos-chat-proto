@@ -1,42 +1,105 @@
 openapi: 3.1.0
 info:
   title: TomChat API
-  version: 0.1.0
-  description: Initial API contract for the TomChat platform.
+  version: 0.2.0
+  description: Authentication foundation for the TomChat platform.
 servers:
   - url: https://chat.example.invalid
 paths:
   /healthz:
     get:
-      summary: Check server health
+      summary: Check server and database health
       responses:
-        '200':
-          description: Server is healthy
+        '200': { description: Healthy }
+        '503': { description: Database unavailable }
   /api/v1/version:
     get:
       summary: Get server version
       responses:
+        '200': { description: Version information }
+  /api/v1/registration:
+    get:
+      summary: Read registration policy
+      responses:
+        '200': { description: Registration policy }
+  /api/v1/auth/register:
+    post:
+      summary: Register a user when public registration is enabled
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '201': { description: Account created }
+        '400': { description: Invalid username or password }
+        '403': { description: Registration disabled }
+        '409': { description: Username unavailable }
+  /api/v1/auth/login:
+    post:
+      summary: Create a bearer session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
         '200':
-          description: Version information
+          description: Authenticated
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  name:
-                    type: string
-                  version:
-                    type: string
-                required: [name, version]
-  /api/v1/auth/register:
-    post:
-      summary: Register a user (planned)
+                $ref: '#/components/schemas/AuthResponse'
+        '401': { description: Invalid credentials }
+  /api/v1/users/me:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get current account
       responses:
-        '501':
-          description: Not implemented yet
-  /api/v1/auth/login:
+        '200': { description: Current user }
+        '401': { description: Authentication required }
+  /api/v1/auth/logout:
     post:
-      summary: Authenticate a user (planned)
+      security:
+        - bearerAuth: []
+      summary: Revoke current session
       responses:
-        '501':
-          description: Not implemented yet
+        '204': { description: Session revoked }
+        '401': { description: Authentication required }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Credentials:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          pattern: '^[a-zA-Z0-9_.-]+$'
+        password:
+          type: string
+          minLength: 12
+          maxLength: 256
+    User:
+      type: object
+      required: [id, username, role]
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        role: { type: string, enum: [user, admin] }
+    AuthResponse:
+      type: object
+      required: [user, token, expires_at]
+      properties:
+        user: { $ref: '#/components/schemas/User' }
+        token: { type: string }
+        expires_at: { type: string, format: date-time }
